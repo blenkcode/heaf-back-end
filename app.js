@@ -12,7 +12,7 @@ var app = express();
 
 // Configurez CORS pour autoriser uniquement votre domaine frontend
 const corsOptions = {
-  origin: "https://heaf-front-end.vercel.app", // Remplacez par le domaine de votre frontend
+  origin: "https://heaf-front-end-qzfj.vercel.app", // Remplacez par le domaine de votre frontend
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
 };
