@@ -13,6 +13,7 @@ const userSchema = mongoose.Schema({
   activityLevel: Number,
   BMR: Number,
   TDEE: Number,
+  calories: Number,
   weights: [
     {
       weight: { type: Number, required: true },
