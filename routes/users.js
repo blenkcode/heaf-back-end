@@ -101,6 +101,45 @@ router.put("/initData/:token", (req, res) => {
       res.status(500).json({ result: false, error: error.message });
     });
 });
+
+// route pour mettre à jour TDEE et BMR :
+router.put("/updateData/:token", (req, res) => {
+  const token = req.params.token;
+
+  User.findOne({ token })
+    .then((user) => {
+      if (!user) {
+        return res.status(404).json({ result: false, error: "User not found" });
+      }
+
+      // Ajouter les nouvelles entrées de poids aux poids existants
+
+      // Mettre à jour les informations de l'utilisateur
+      return User.findByIdAndUpdate(
+        user._id,
+        {
+          BMR: req.body.BMR,
+          TDEE: req.body.TDEE,
+        },
+        { new: true, runValidators: true } // Retourner le document mis à jour et appliquer les validations
+      );
+    })
+    .then((updatedUser) => {
+      if (!updatedUser) {
+        return res.status(404).json({ result: false, error: "User not found" });
+      }
+
+      res.json({
+        result: true,
+        user: updatedUser,
+      });
+    })
+    .catch((error) => {
+      console.error("Error updating user:", error);
+      res.status(500).json({ result: false, error: error.message });
+    });
+});
+
 router.get("/:token", (req, res) => {
   const token = req.params.token;
 
