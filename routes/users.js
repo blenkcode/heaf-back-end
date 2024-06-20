@@ -81,7 +81,7 @@ router.put("/initData/:token", (req, res) => {
           activityLevel: req.body.activityLevel,
           BMR: req.body.BMR,
           TDEE: req.body.TDEE,
-          calories: req.body.calories,
+          caloriesDeficit: req.body.caloriesDeficit,
         },
         { new: true, runValidators: true } // Retourner le document mis à jour et appliquer les validations
       );
