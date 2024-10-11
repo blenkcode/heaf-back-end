@@ -74,7 +74,12 @@ router.post("/google-signin", (req, res) => {
           data: {
             pseudo: data.pseudo,
             token: data.token,
-            calories: data.calories,
+            weights: data.weights,
+            activityLevel: data.activityLevel,
+            gender: data.gender,
+            weight: data.weight,
+            height: data.height,
+            caloriesDeficit: data.caloriesDeficit,
             BMR: data.BMR,
             TDEE: data.TDEE,
             age: data.age,
