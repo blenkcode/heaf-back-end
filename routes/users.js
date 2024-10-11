@@ -56,6 +56,38 @@ router.post("/signin", (req, res) => {
   });
 });
 
+//login via GOOGLE
+
+router.post("/google-signin", (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return res.json({ result: false, error: "Email is required" });
+  }
+
+  // Recherche l'utilisateur dans la BDD par email
+  User.findOne({ email: email })
+    .then((data) => {
+      if (data) {
+        res.json({
+          result: true,
+          data: {
+            pseudo: data.pseudo,
+            token: data.token,
+            calories: data.calories,
+            BMR: data.BMR,
+            TDEE: data.TDEE,
+            age: data.age,
+          },
+        });
+      } else {
+        res.json({ result: false, error: "User not found" });
+      }
+    })
+    .catch((error) => {
+      res.status(500).json({ result: false, error: "Server error" });
+    });
+});
 // Route pour mettre à jour les informations de l'utilisateur avec le token
 router.put("/initData/:token", (req, res) => {
   const token = req.params.token;
