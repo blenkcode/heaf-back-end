@@ -11,9 +11,10 @@ var usersRouter = require("./routes/users");
 var app = express();
 const cors = require("cors");
 const corsOptions = {
-  origin: "*",
-  credentials: true, //access-control-allow-credentials:true
-  optionSuccessStatus: 200,
+  origin: ["https://heafv2.vercel.app", "http://localhost:3000"], // Autoriser ces domaines
+  methods: "GET,HEAD,PUT,PATCH,POST,DELETE", // Méthodes HTTP autorisées
+  credentials: true, // Autorise l'envoi de cookies ou d'headers d'authentification
+  optionsSuccessStatus: 200, // Pour les navigateurs anciens
 };
 const port = process.env.PORT || 3005;
 app.listen(port, () => {
