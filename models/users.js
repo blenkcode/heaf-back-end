@@ -1,18 +1,19 @@
 const mongoose = require("mongoose");
 
 const userSchema = mongoose.Schema({
-  pseudo: String,
+  name: String,
   email: String,
   password: String,
-  token: String,
   firstCo: Date,
   age: Number,
+  token: String,
   weight: Number,
   height: Number,
   gender: String,
   activityLevel: Number,
   BMR: Number,
   TDEE: Number,
+  weightObj: Number,
   objectif: Number,
   caloriesDeficit: Number,
   weights: [

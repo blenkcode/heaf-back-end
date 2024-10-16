@@ -15,7 +15,10 @@ const corsOptions = {
   credentials: true, //access-control-allow-credentials:true
   optionSuccessStatus: 200,
 };
-
+const port = process.env.PORT || 3005;
+app.listen(port, () => {
+  console.log(`Server is running on http://localhost:${port}`);
+});
 app.use(cors(corsOptions));
 
 app.use(logger("dev"));

@@ -1,37 +1,49 @@
 var express = require("express");
 
 var router = express.Router();
-
+const jwt = require("jsonwebtoken"); // Ajout du package jsonwebtoken
+const uid2 = require("uid2");
 require("../models/connection");
 const User = require("../models/users");
 const { checkBody } = require("../modules/checkBody");
-const uid2 = require("uid2");
+
 const bcrypt = require("bcrypt");
 
 //inscription
 
 router.post("/signup", (req, res) => {
-  if (!checkBody(req.body, ["pseudo", "email", "password"])) {
-    res.json({ result: false, error: "Missing or empty fields" });
-    return;
-  }
-
-  User.findOne({ pseudo: req.body.pseudo }).then((data) => {
+  User.findOne({ name: req.body.username }).then((data) => {
     if (data === null) {
       const hash = bcrypt.hashSync(req.body.password, 10);
 
       const newUser = new User({
-        pseudo: req.body.pseudo,
+        name: req.body.username,
         email: req.body.email,
         password: hash,
         token: uid2(32),
+        height: null,
+        age: null,
+        weightObj: null,
+        gender: null,
+        caloriesDeficit: null,
+        BMR: null,
+        TDEE: null,
       });
 
       newUser.save().then((newDoc) => {
-        res.json({ result: true, token: newDoc.token });
+        // Générer un token JWT avec l'ID utilisateur
+        const token = jwt.sign(
+          { userId: newDoc._id, name: newDoc.name },
+          process.env.JWT_SECRET,
+          {
+            expiresIn: "7d", // Token valide pendant 7 jours par exemple
+          }
+        );
+
+        res.json({ result: true, token, user: newDoc });
       });
     } else {
-      // User already exists in database
+      // User already exists
       res.json({ result: false, error: "User already exists" });
     }
   });
@@ -39,12 +51,7 @@ router.post("/signup", (req, res) => {
 
 //connexion
 router.post("/signin", (req, res) => {
-  if (!checkBody(req.body, ["pseudo", "password"])) {
-    res.json({ result: false, error: "Missing or empty fields" });
-    return;
-  }
-
-  User.findOne({ pseudo: req.body.pseudo }).then((data) => {
+  User.findOne({ name: req.body.username }).then((data) => {
     if (data && bcrypt.compareSync(req.body.password, data.password)) {
       res.json({
         result: true,
@@ -94,10 +101,10 @@ router.post("/google-signin", (req, res) => {
     });
 });
 // Route pour mettre à jour les informations de l'utilisateur avec le token
-router.put("/initData/:token", (req, res) => {
-  const token = req.params.token;
+router.put("/initData/:userId", (req, res) => {
+  const userId = req.params.userId;
 
-  User.findOne({ token })
+  User.findById(userId)
     .then((user) => {
       if (!user) {
         return res.status(404).json({ result: false, error: "User not found" });
@@ -111,9 +118,56 @@ router.put("/initData/:token", (req, res) => {
         user._id,
         {
           age: req.body.age,
+          objectif: req.body.objectif,
           gender: req.body.gender,
           height: req.body.height,
-          weight: req.body.weight,
+          weightObj: req.body.weightObj,
+          weights: updatedWeights,
+          activityLevel: req.body.activityLevel,
+          BMR: req.body.BMR,
+          TDEE: req.body.TDEE,
+          caloriesDeficit: req.body.caloriesDeficit,
+        },
+        { new: true, runValidators: true } // Retourner le document mis à jour et appliquer les validations
+      );
+    })
+    .then((updatedUser) => {
+      if (!updatedUser) {
+        return res.status(404).json({ result: false, error: "User not found" });
+      }
+
+      res.json({
+        result: true,
+        user: updatedUser,
+      });
+    })
+    .catch((error) => {
+      console.error("Error updating user:", error);
+      res.status(500).json({ result: false, error: error.message });
+    });
+});
+
+router.put("/initData/:token", (req, res) => {
+  const token = req.params.token;
+
+  User.find({ token })
+    .then((user) => {
+      if (!user) {
+        return res.status(404).json({ result: false, error: "User not found" });
+      }
+
+      // Ajouter les nouvelles entrées de poids aux poids existants
+      const updatedWeights = [...user.weights, ...req.body.weights];
+
+      // Mettre à jour les informations de l'utilisateur
+      return User.findByIdAndUpdate(
+        user._id,
+        {
+          age: req.body.age,
+          objectif: req.body.objectif,
+          gender: req.body.gender,
+          height: req.body.height,
+          weightObj: req.body.weightObj,
           weights: updatedWeights,
           activityLevel: req.body.activityLevel,
           BMR: req.body.BMR,
@@ -177,10 +231,10 @@ router.put("/updateData/:token", (req, res) => {
     });
 });
 
-router.get("/:token", (req, res) => {
-  const token = req.params.token;
+router.get("/:userId", (req, res) => {
+  const userId = req.params.userId;
 
-  User.findOne({ token })
+  User.findById(userId)
 
     .then((user) => {
       if (!user) {
@@ -197,43 +251,59 @@ router.get("/:token", (req, res) => {
     });
 });
 
-router.put("/newWeight/:token", (req, res) => {
-  const token = req.params.token;
+router.put("/newWeight/:userId", (req, res) => {
+  const userId = req.params.userId;
 
-  User.findOne({ token })
+  console.log("Données reçues:", req.body);
+
+  // Trouver l'utilisateur par ID
+  User.findById(userId)
     .then((user) => {
       if (!user) {
+        // Si l'utilisateur n'est pas trouvé, retourner une réponse immédiatement
         return res.status(404).json({ result: false, error: "User not found" });
       }
 
-      // Ajouter le nouveau poids avec la date actuelle au tableau existant des poids
-      const newWeightEntry = req.body;
-      const updatedWeights = [...user.weights, newWeightEntry];
+      const { newWeightEntry, BMR, objectif, TDEE } = req.body; // Accéder au premier élément du tableau des poids
 
-      // Mettre à jour les informations de l'utilisateur
-      return User.findByIdAndUpdate(
-        user._id,
-        {
-          weights: updatedWeights,
-        },
-        { new: true, runValidators: true } // Retourner le document mis à jour et appliquer les validations
-      );
-    })
-    .then((updatedUser) => {
-      if (!updatedUser) {
-        return res.status(404).json({ result: false, error: "User not found" });
+      // Vérification des données
+      if (!newWeightEntry || !newWeightEntry.weight || !newWeightEntry.date) {
+        // Si les données sont invalides, renvoyer une réponse immédiatement
+        return res.status(400).json({
+          result: false,
+          error: "Both weight and date are required.",
+        });
       }
 
-      res.json({
-        result: true,
-        weights: updatedUser.weights,
+      // Ajouter le nouveau poids au tableau des poids de l'utilisateur
+      user.weights.push(newWeightEntry);
+
+      // Sauvegarder les modifications et renvoyer la réponse
+      if (BMR) user.BMR = BMR;
+      if (objectif) user.objectif = objectif;
+      if (TDEE) user.TDEE = TDEE;
+
+      // Sauvegarder les modifications et renvoyer la réponse
+      return user.save().then((updatedUser) => {
+        res.json({
+          result: true,
+          weights: updatedUser.weights,
+          BMR: updatedUser.BMR,
+          objectif: updatedUser.objectif,
+          TDEE: updatedUser.TDEE,
+        });
       });
     })
     .catch((error) => {
+      // Si une erreur survient, renvoyer une réponse d'erreur
       console.error("Error updating user:", error);
-      res.status(500).json({ result: false, error: error.message });
+      if (!res.headersSent) {
+        // Vérification pour s'assurer que les en-têtes ne sont pas déjà envoyés
+        return res.status(500).json({ result: false, error: error.message });
+      }
     });
 });
+
 router.get("/weights/:token", (req, res) => {
   const token = req.params.token;
 
